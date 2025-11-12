@@ -3,9 +3,9 @@ name = "adi-svc"
 version = "0.1.0"
 edition = "2021"
 authors = ["adi-svc contributors"]
-license = "MIT"
-description = "Azure AI Document Intelligence Service - Production-grade Rust microservice"
-repository = "https://github.com/yourusername/adi-svc"
+license = "Apache 2.0"
+description = "AI Document Intelligence Service Demo - Production-grade Rust Mcroservice"
+repository = "https://github.com/danromuald/adi-svc"
 
 [dependencies]
 # gRPC and Protobuf
