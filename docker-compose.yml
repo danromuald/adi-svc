@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: adi-postgres
+    environment:
+      POSTGRES_USER: adi_user
+      POSTGRES_PASSWORD: adi_password
+      POSTGRES_DB: adi_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U adi_user -d adi_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  adi-svc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"  # gRPC
+      - "8080:8080"    # REST
+    environment:
+      - AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT=${AZURE_DOCUMENT_INTELLIGENCE_ENDPOINT}
+      - AZURE_DOCUMENT_INTELLIGENCE_KEY=${AZURE_DOCUMENT_INTELLIGENCE_KEY}
+      - DATABASE_URL=postgresql://adi_user:adi_password@postgres:5432/adi_db
+      - GRPC_PORT=50051
+      - REST_PORT=8080
+      - HOST=0.0.0.0
+      - RUST_LOG=info,adi_svc=debug
+      - UPLOAD_DIR=/app/uploads
+      - MAX_UPLOAD_SIZE_MB=50
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  uploads:
+  postgres_data:
+

@@ -1,0 +1,35 @@
+# Rust
+target/
+**/*.rs.bk
+*.pdb
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Build artifacts
+/adi-svc/target
+/adi-web/build
+/adi-web/node_modules
+
+# Uploads
+uploads/
+
+# Git
+.git/
+.gitignore
+

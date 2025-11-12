@@ -1,0 +1,340 @@
+syntax = "proto3";
+
+package adi.document_intelligence.v1;
+
+// Main Document Intelligence Service
+service DocumentIntelligenceService {
+  // Read Model - Extract text from documents
+  rpc AnalyzeRead(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Layout Model - Extract text, tables, and structure
+  rpc AnalyzeLayout(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Prebuilt Invoice Model
+  rpc AnalyzeInvoice(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Prebuilt Receipt Model
+  rpc AnalyzeReceipt(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Prebuilt ID Document Model
+  rpc AnalyzeIdDocument(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Prebuilt Business Card Model
+  rpc AnalyzeBusinessCard(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Prebuilt W-2 Tax Form Model
+  rpc AnalyzeW2(AnalyzeRequest) returns (AnalyzeResponse);
+  
+  // Custom Model Analysis
+  rpc AnalyzeCustom(AnalyzeCustomRequest) returns (AnalyzeResponse);
+  
+  // Get Analysis Result (for async operations)
+  rpc GetAnalysisResult(GetAnalysisResultRequest) returns (AnalyzeResponse);
+  
+  // Upload document for analysis
+  rpc UploadAndAnalyze(stream UploadRequest) returns (AnalyzeResponse);
+}
+
+// Request for document analysis
+message AnalyzeRequest {
+  oneof source {
+    string document_url = 1;  // URL to document
+    bytes document_bytes = 2;  // Raw document bytes
+  }
+  
+  AnalyzeOptions options = 3;
+}
+
+// Options for analysis
+message AnalyzeOptions {
+  string locale = 1;  // Language locale (e.g., "en-US")
+  repeated string pages = 2;  // Specific pages to analyze (e.g., "1-3,5")
+  repeated Feature features = 3;  // Additional features to enable
+}
+
+// Additional features that can be enabled
+enum Feature {
+  FEATURE_UNSPECIFIED = 0;
+  FEATURE_OCR_HIGH_RESOLUTION = 1;
+  FEATURE_LANGUAGES = 2;
+  FEATURE_BARCODES = 3;
+  FEATURE_FORMULAS = 4;
+  FEATURE_STYLE_FONT = 5;
+  FEATURE_KEY_VALUE_PAIRS = 6;
+}
+
+// Request for custom model analysis
+message AnalyzeCustomRequest {
+  oneof source {
+    string document_url = 1;
+    bytes document_bytes = 2;
+  }
+  
+  string model_id = 3;  // Custom model ID
+  AnalyzeOptions options = 4;
+}
+
+// Request to get analysis result by operation ID
+message GetAnalysisResultRequest {
+  string operation_id = 1;
+}
+
+// Upload request for streaming
+message UploadRequest {
+  oneof data {
+    UploadMetadata metadata = 1;
+    bytes chunk = 2;
+  }
+}
+
+message UploadMetadata {
+  string filename = 1;
+  string content_type = 2;
+  string model_type = 3;  // read, layout, invoice, etc.
+}
+
+// Analysis response
+message AnalyzeResponse {
+  AnalysisStatus status = 1;
+  string operation_id = 2;  // For tracking async operations
+  AnalysisResult result = 3;
+  Error error = 4;
+}
+
+enum AnalysisStatus {
+  STATUS_UNSPECIFIED = 0;
+  STATUS_RUNNING = 1;
+  STATUS_SUCCEEDED = 2;
+  STATUS_FAILED = 3;
+}
+
+// Main analysis result
+message AnalysisResult {
+  string model_id = 1;
+  string api_version = 2;
+  string content = 3;  // Full text content
+  
+  repeated DocumentPage pages = 4;
+  repeated DocumentTable tables = 5;
+  repeated KeyValuePair key_value_pairs = 6;
+  repeated DocumentEntity entities = 7;
+  repeated DocumentStyle styles = 8;
+  
+  // Prebuilt model specific results
+  repeated Document documents = 9;
+}
+
+// Document page information
+message DocumentPage {
+  int32 page_number = 1;
+  float angle = 2;
+  float width = 3;
+  float height = 4;
+  string unit = 5;  // pixel, inch
+  
+  repeated DocumentSpan spans = 6;
+  repeated DocumentWord words = 7;
+  repeated DocumentLine lines = 8;
+  repeated SelectionMark selection_marks = 9;
+  repeated DocumentBarcode barcodes = 10;
+}
+
+// Document span (reference to content)
+message DocumentSpan {
+  int32 offset = 1;
+  int32 length = 2;
+}
+
+// Document word
+message DocumentWord {
+  string content = 1;
+  BoundingPolygon polygon = 2;
+  float confidence = 3;
+  DocumentSpan span = 4;
+}
+
+// Document line
+message DocumentLine {
+  string content = 1;
+  BoundingPolygon polygon = 2;
+  repeated DocumentSpan spans = 3;
+}
+
+// Selection mark (checkbox, radio button)
+message SelectionMark {
+  SelectionMarkState state = 1;
+  BoundingPolygon polygon = 2;
+  float confidence = 3;
+  DocumentSpan span = 4;
+}
+
+enum SelectionMarkState {
+  SELECTION_MARK_UNSPECIFIED = 0;
+  SELECTION_MARK_SELECTED = 1;
+  SELECTION_MARK_UNSELECTED = 2;
+}
+
+// Barcode
+message DocumentBarcode {
+  BarcodeKind kind = 1;
+  string value = 2;
+  BoundingPolygon polygon = 3;
+  float confidence = 4;
+  DocumentSpan span = 5;
+}
+
+enum BarcodeKind {
+  BARCODE_UNSPECIFIED = 0;
+  BARCODE_QR_CODE = 1;
+  BARCODE_PDF417 = 2;
+  BARCODE_UPCA = 3;
+  BARCODE_UPCE = 4;
+  BARCODE_CODE39 = 5;
+  BARCODE_CODE128 = 6;
+  BARCODE_EAN8 = 7;
+  BARCODE_EAN13 = 8;
+}
+
+// Bounding polygon
+message BoundingPolygon {
+  repeated Point points = 1;
+}
+
+message Point {
+  float x = 1;
+  float y = 2;
+}
+
+// Document table
+message DocumentTable {
+  int32 row_count = 1;
+  int32 column_count = 2;
+  repeated DocumentTableCell cells = 3;
+  repeated DocumentSpan spans = 4;
+  BoundingRegion bounding_regions = 5;
+}
+
+message DocumentTableCell {
+  CellKind kind = 1;
+  int32 row_index = 2;
+  int32 column_index = 3;
+  int32 row_span = 4;
+  int32 column_span = 5;
+  string content = 6;
+  repeated DocumentSpan spans = 7;
+  BoundingRegion bounding_regions = 8;
+}
+
+enum CellKind {
+  CELL_KIND_UNSPECIFIED = 0;
+  CELL_KIND_CONTENT = 1;
+  CELL_KIND_ROW_HEADER = 2;
+  CELL_KIND_COLUMN_HEADER = 3;
+  CELL_KIND_STUB_HEAD = 4;
+  CELL_KIND_DESCRIPTION = 5;
+}
+
+message BoundingRegion {
+  int32 page_number = 1;
+  BoundingPolygon polygon = 2;
+}
+
+// Key-value pairs
+message KeyValuePair {
+  DocumentField key = 1;
+  DocumentField value = 2;
+  float confidence = 3;
+}
+
+// Document field
+message DocumentField {
+  FieldType type = 1;
+  string value_string = 2;
+  double value_number = 3;
+  int32 value_integer = 4;
+  bool value_boolean = 5;
+  DocumentDate value_date = 6;
+  DocumentTime value_time = 7;
+  repeated DocumentField value_array = 8;
+  map<string, DocumentField> value_object = 9;
+  
+  string content = 10;
+  repeated DocumentSpan spans = 11;
+  repeated BoundingRegion bounding_regions = 12;
+  float confidence = 13;
+}
+
+enum FieldType {
+  FIELD_TYPE_UNSPECIFIED = 0;
+  FIELD_TYPE_STRING = 1;
+  FIELD_TYPE_NUMBER = 2;
+  FIELD_TYPE_INTEGER = 3;
+  FIELD_TYPE_DATE = 4;
+  FIELD_TYPE_TIME = 5;
+  FIELD_TYPE_BOOLEAN = 6;
+  FIELD_TYPE_ARRAY = 7;
+  FIELD_TYPE_OBJECT = 8;
+}
+
+message DocumentDate {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+}
+
+message DocumentTime {
+  int32 hour = 1;
+  int32 minute = 2;
+  int32 second = 3;
+}
+
+// Document entity (for classification)
+message DocumentEntity {
+  string category = 1;
+  string sub_category = 2;
+  string content = 3;
+  float confidence = 4;
+  repeated DocumentSpan spans = 5;
+  repeated BoundingRegion bounding_regions = 6;
+}
+
+// Document style
+message DocumentStyle {
+  bool is_handwritten = 1;
+  float confidence = 2;
+  repeated DocumentSpan spans = 3;
+  FontStyle font_style = 4;
+  FontWeight font_weight = 5;
+  string color = 6;
+  string background_color = 7;
+}
+
+enum FontStyle {
+  FONT_STYLE_UNSPECIFIED = 0;
+  FONT_STYLE_NORMAL = 1;
+  FONT_STYLE_ITALIC = 2;
+}
+
+enum FontWeight {
+  FONT_WEIGHT_UNSPECIFIED = 0;
+  FONT_WEIGHT_NORMAL = 1;
+  FONT_WEIGHT_BOLD = 2;
+}
+
+// Extracted document (for prebuilt models)
+message Document {
+  string doc_type = 1;
+  map<string, DocumentField> fields = 2;
+  repeated BoundingRegion bounding_regions = 3;
+  repeated DocumentSpan spans = 4;
+  float confidence = 5;
+}
+
+// Error information
+message Error {
+  string code = 1;
+  string message = 2;
+  string target = 3;
+  repeated Error details = 4;
+}
+

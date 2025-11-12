@@ -1,0 +1,78 @@
+[package]
+name = "adi-svc"
+version = "0.1.0"
+edition = "2021"
+authors = ["adi-svc contributors"]
+license = "MIT"
+description = "Azure AI Document Intelligence Service - Production-grade Rust microservice"
+repository = "https://github.com/yourusername/adi-svc"
+
+[dependencies]
+# gRPC and Protobuf
+tonic = "0.11"
+prost = "0.12"
+prost-types = "0.12"
+
+# Async runtime
+tokio = { version = "1.35", features = ["full"] }
+tokio-stream = "0.1"
+
+# REST API
+axum = { version = "0.7", features = ["multipart"] }
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors", "trace", "fs"] }
+
+# Azure SDK
+azure_core = "0.19"
+azure_identity = "0.19"
+reqwest = { version = "0.11", features = ["json", "stream", "multipart"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
+
+# Configuration
+config = "0.14"
+dotenvy = "0.15"
+
+# Database
+sqlx = { version = "0.7", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"] }
+
+# Utilities
+uuid = { version = "1.6", features = ["v4", "serde"] }
+chrono = { version = "0.4", features = ["serde"] }
+bytes = "1.5"
+futures = "0.3"
+async-trait = "0.1"
+url = "2.5"
+mime = "0.3"
+base64 = "0.21"
+
+[build-dependencies]
+tonic-build = "0.11"
+
+[dev-dependencies]
+mockall = "0.12"
+tempfile = "3.8"
+
+[[bin]]
+name = "adi-svc"
+path = "src/main.rs"
+
+[[bin]]
+name = "migrate"
+path = "src/bin/migrate.rs"
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+
